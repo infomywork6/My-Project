@@ -1,6 +1,7 @@
 package com.prashant.my_projects
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -27,18 +28,21 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.prashant.my_projects.ui.theme.MVIDemoTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    private val mainViewModel: MainViewModel by viewModels<MainViewModel>()
+    private lateinit var mainViewModel: MainViewModel
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        mainViewModel = MainViewModel(MovieRepository())
         setContent {
             MVIDemoTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    color = MaterialTheme.colorScheme.onPrimary
                 ) {
                     MVIScreen(viewModel = mainViewModel)
                 }
@@ -50,7 +54,11 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MVIScreen(viewModel: MainViewModel) {
     val state by viewModel.state.collectAsState()
+
+    Log.d("TAG", "MVIScreen: start")
+
     LaunchedEffect(viewModel) {
+        Log.d("TAG", "MVIScreen: launch")
         viewModel.handleIntent(MovieIntent.LoadMovie)
     }
 
@@ -61,15 +69,20 @@ fun MVIScreen(viewModel: MainViewModel) {
     ) {
         when {
             state.loading -> {
+                Log.d("TAG", "MVIScreen: Loading")
                 CircularProgressIndicator(modifier = Modifier.align(alignment = Alignment.CenterHorizontally))
             }
 
             state.error != null -> {
+                Log.d("TAG", "MVIScreen: Error")
                 Text(text = "Error: ${state.error}", color = Color.Red)
             }
 
             else -> {
-                MovieListUI(state.movie)
+                // Don't render list UI until get movie list
+                if (state.movie.isNotEmpty()) {
+                    MovieListUI(state.movie)
+                }
             }
         }
     }
@@ -77,6 +90,7 @@ fun MVIScreen(viewModel: MainViewModel) {
 
 @Composable
 fun MovieListUI(movie: List<Movie>) {
+    Log.d("TAG", "MovieListUI: start")
     LazyColumn {
         items(movie) { movie ->
             Card(
